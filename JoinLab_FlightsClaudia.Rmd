@@ -1,0 +1,140 @@
+---
+title: "Join Lab"
+author: "Claudia Dominguez"
+date: "DATA 2401"
+output: "html_document"
+---
+
+
+# Joins and `dplyr` practice
+
+Load the `"nycflights13"` package.  You'll also need to load `dplyr` or `tidyverse`, if you didn't above.
+
+```{r}
+library(tidyverse)
+#install.packages("nycflights13")
+library(nycflights13)
+my_flights <- flights # store my own version
+my_flights <- na.omit(my_flights) ## this dataset has data on cancelled flights too, 
+                                  ## so we 'll remove those for now
+
+```
+
+
+Create a dataframe of the average arrival delays for each _destination_
+
+```{r}
+library(tidyverse)
+
+avg_arrival_delays <- my_flights %>%
+  group_by(dest) %>%
+  summarise(Average_Arrival_Delay = mean(arr_delay, na.rm = TRUE)) %>%
+  arrange(desc(Average_Arrival_Delay))  
+
+print(avg_arrival_delays)
+
+
+```
+
+Then use `left_join()` to join on the "airports" dataframe, which has the airport information.
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+
+avg_arrival_delays <- my_flights %>%
+  group_by(dest) %>%
+  summarise(Average_Arrival_Delay = mean(arr_delay, na.rm = TRUE)) %>%
+  arrange(desc(Average_Arrival_Delay))
+
+avg_arrival_delays_with_info <- avg_arrival_delays %>%
+  left_join(airports, by = c("dest" = "faa"))
+
+print(avg_arrival_delays_with_info)
+
+```
+
+
+Note here: the column names don't match anymore! 
+
+Which airport had the largest average arrival delay?
+
+```{r}
+largest_delay_airport <- avg_arrival_delays_with_info %>%
+  slice_max(Average_Arrival_Delay, n = 1)
+
+print(largest_delay_airport)
+
+```
+
+
+
+What is the average departure delay for each airline? To answer this with something more than just the FAA code of the airline name, you need to create a dataframe of the average departure delay for each _airline_, then use `left_join()` to join on the "airlines" dataframe
+
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+
+avg_departure_delays <- my_flights %>%
+  group_by(carrier) %>%
+  summarise(Average_Departure_Delay = mean(dep_delay, na.rm = TRUE)) %>%
+  arrange(desc(Average_Departure_Delay))
+
+avg_departure_delays_with_info <- avg_departure_delays %>%
+  left_join(airlines, by = "carrier")
+
+print(avg_departure_delays_with_info)
+
+
+```
+
+
+Which airline had the smallest average departure delay? 
+
+
+```{r}
+smallest_delay_airline <- avg_departure_delays_with_info %>%
+  slice_min(Average_Departure_Delay, n = 1)
+
+print(smallest_delay_airline)
+
+
+
+```
+
+
+
+
+
+Examples from R4DS:    
+
+```{r}
+
+top_dest <- flights %>%
+  count(dest, sort = TRUE) %>%
+  head(10)
+top_dest
+
+```
+
+Now you want to find each flight that went to one of those destinations. You could, of course, filter. But! Now you can semi-join: 
+
+```{r}
+flights %>%
+  left_join(airports, by = c("dest" = "faa"))
+
+```
+
+
+What does anti_join(flights, airports, by = c("dest" = "faa")) tell you? What does anti_join(airports, flights, by = c("faa" = "dest")) tell you?
+Perform the two joins below and consider what the results are. 
+
+```{r}
+missing_airports_in_flights <- anti_join(flights, airports, by = c("dest" = "faa"))
+print(missing_airports_in_flights)
+
+unused_airports <- anti_join(airports, flights, by = c("faa" = "dest"))
+print(unused_airports)
+
+```
